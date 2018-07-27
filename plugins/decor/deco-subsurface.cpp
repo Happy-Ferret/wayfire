@@ -21,46 +21,31 @@ extern "C"
 #include <signal-definitions.hpp>
 #include "deco-subsurface.hpp"
 
+#include <gtk/gtk.h>
 #include <cairo.h>
 
-GLuint get_text_texture(int width, int height, std::string text)
+GLuint get_texture_from_gtk_offscreen(GtkWidget* offscreen)
 {
-    const auto format = CAIRO_FORMAT_ARGB32;
-    auto surface = cairo_image_surface_create(format, width, height);
-    auto cr = cairo_create(surface);
-
-    const float font_scale = 0.8;
-    const float font_size = height * font_scale;
-
-    // render text
-    cairo_select_font_face(cr, "serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_source_rgba(cr, 1, 1, 1, 1);
-
-    cairo_set_font_size(cr, font_size);
-
-    cairo_text_extents_t ext;
-    cairo_text_extents(cr, text.c_str(), &ext);
-
-    cairo_move_to(cr, font_size, height - ext.height / 2.0);
-    cairo_show_text(cr, text.c_str());
-
-    cairo_destroy(cr);
-
+    auto surface = gtk_offscreen_window_get_surface(GTK_OFFSCREEN_WINDOW(offscreen));
     auto src = cairo_image_surface_get_data(surface);
+
+    int width = cairo_image_surface_get_width(surface);
+    int height = cairo_image_surface_get_height(surface);
+
+    int stride = cairo_image_surface_get_stride(surface);
+    log_info("gtk surface has stride %d width %d per-pixel: %d", stride, width, stride / width);
 
     GLuint tex;
     GL_CALL(glGenTextures(1, &tex));
     GL_CALL(glBindTexture(GL_TEXTURE_2D, tex));
     GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, src));
 
-    cairo_surface_destroy(surface);
-
     return tex;
 }
 
 class simple_decoration_surface : public wayfire_compositor_surface_t, public wf_decorator_frame_t
 {
-    const int titlebar_thickness = 30;
+    const int titlebar_thickness = 50;
     const int normal_thickness = 15;
 
     int thickness = normal_thickness;
@@ -108,8 +93,8 @@ class simple_decoration_surface : public wayfire_compositor_surface_t, public wf
         float border_color[4] = {0.15f, 0.15f, 0.15f, 0.8f};
         float border_color_inactive[4] = {0.25f, 0.25f, 0.25f, 0.95f};
 
-        GLuint tex = -1;
-
+        GtkWidget *headerbar = NULL, *offw = NULL;
+        GLuint headertex = 0;
 
         virtual void _wlr_render_box(const wlr_fb_attribs& fb, int x, int y, const wlr_box& scissor)
         {
@@ -127,21 +112,25 @@ class simple_decoration_surface : public wayfire_compositor_surface_t, public wf
 
             wlr_render_quad_with_matrix(core->renderer, active ? border_color : border_color_inactive, matrix);
 
-            if (tex == (uint)-1)
-                tex = get_text_texture(text_field_width, titlebar, view->get_title());
+            if (headerbar == NULL)
+            {
+                log_info("no headerbar");
+                wlr_renderer_end(core->renderer);
+                return;
+            }
 
             auto ortho = glm::ortho(0.0f, 1.0f * fb.width, 1.0f * fb.height, 0.0f);
 
             gl_geometry gg;
             gg.x1 = geometry.x;
             gg.y1 = geometry.y;
-            gg.x2 = geometry.x + std::min(text_field_width, geometry.width);
+            gg.x2 = geometry.x + geometry.width;
             gg.y2 = geometry.y + titlebar;
 
             log_info("render tex %fx%f %fx%f", gg.x1, gg.y1, gg.x2, gg.y2);
 
             OpenGL::use_default_program();
-            OpenGL::render_transformed_texture(tex, gg, {}, ortho, {1, 1, 1, 1}, TEXTURE_TRANSFORM_INVERT_Y);
+            OpenGL::render_transformed_texture(headertex, gg, {}, ortho, {1, 1, 1, 1}, TEXTURE_TRANSFORM_INVERT_Y);
 
             wlr_renderer_end(core->renderer);
         }
@@ -243,10 +232,33 @@ class simple_decoration_surface : public wayfire_compositor_surface_t, public wf
 
         virtual void notify_view_resized(wf_geometry view_geometry)
         {
+            bool changed_width = (width == view_geometry.width);
+
             width = view_geometry.width;
             height = view_geometry.height;
 
             view->damage();
+
+            if (!changed_width)
+                return;
+
+            if (headerbar)
+                gtk_widget_destroy(headerbar);
+            if (offw)
+                gtk_widget_destroy(offw);
+
+            headerbar = gtk_header_bar_new();
+            gtk_widget_set_size_request(headerbar, width, titlebar);
+            gtk_header_bar_set_title(GTK_HEADER_BAR(headerbar), view->get_title().c_str());
+
+            offw = gtk_offscreen_window_new();
+            gtk_container_add(GTK_CONTAINER(offw), headerbar);
+            gtk_widget_show_all(offw);
+
+            while(gtk_events_pending())
+                gtk_main_iteration();
+
+            headertex = get_texture_from_gtk_offscreen(offw);
         };
 
         virtual void notify_view_maximized()

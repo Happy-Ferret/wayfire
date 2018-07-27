@@ -3,6 +3,8 @@
 #include <debug.hpp>
 #include <signal-definitions.hpp>
 
+#include <gtk/gtk.h>
+
 #include "deco-subsurface.hpp"
 class wayfire_decoration : public wayfire_plugin_t
 {
@@ -17,6 +19,12 @@ class wayfire_decoration : public wayfire_plugin_t
         };
 
         output->connect_signal("map-view", &view_created);
+
+        auto disp = getenv("DISPLAY");
+        setenv("DISPLAY", "invalid_display", 1);
+        log_info("init gtk, has %d", gtk_init_check(0, NULL));
+        if (disp)
+            setenv("DISPLAY", disp, 1);
     }
 
     void new_view(wayfire_view view)
