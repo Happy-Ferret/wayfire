@@ -5,6 +5,7 @@ shell_deps = [wf_protos, wfconfig, wf_window_util,
 
 subdir('background')
 subdir('panel')
+subdir('dock')
 
 ## TODO: do we need vkeyboard anymore?
 ## we should support layer-shell and virtual-keyboard protocols,
