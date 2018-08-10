@@ -62,7 +62,11 @@ static const struct zwf_window_v1_interface zwf_window_implementation = {
 
 static void handle_zwf_window_v1_destroy(wl_resource *resource)
 {
-    wl_list_remove(wl_resource_get_link(resource));
+    // if it hasn't been already destroyed server-side, its user data will be
+    // the view and not NULL
+    log_info("destroy resource %p has %p", resource, wl_resource_get_user_data(resource));
+    if (wl_resource_get_user_data(resource))
+        wl_list_remove(wl_resource_get_link(resource));
 }
 
 struct zwf_custom_view_data : public wf_custom_view_data
@@ -102,7 +106,9 @@ static void create_zwf_window_v1(wl_resource *client, wayfire_view view)
     wl_list_insert(&data->list, wl_resource_get_link(resource));
 
     wl_resource_set_implementation(resource, &zwf_window_implementation, view.get(),
-                                   handle_zwf_task_manager_destroy);
+                                   handle_zwf_window_v1_destroy);
+
+    log_info("create resource %p", resource);
 
     zwf_task_manager_v1_send_window_created(client, resource);
     zwf_window_v1_send_data(resource, view);
@@ -135,18 +141,23 @@ class wayfire_window_list : public wayfire_plugin_t
 
         log_info("destroy view window-list");
         auto data = get_data_for_view(view);
+
         wl_resource *resource;
         std::vector<wl_resource*> to_destroy;
         wl_resource_for_each(resource, &data->list)
-        {
-            log_info("got resoruce");
             to_destroy.push_back(resource);
-        }
 
         for (auto resource : to_destroy)
         {
             zwf_window_v1_send_destroyed(resource);
-            wl_resource_destroy(resource);
+
+            // remove so that no further events are sent
+            wl_list_remove(wl_resource_get_link(resource));
+
+            // we removed the resource from the list, so we must make it inert
+            wl_resource_set_user_data(resource, NULL);
+
+            log_info("reset destroy resource %p has %p", resource, wl_resource_get_user_data(resource));
         }
     }
 

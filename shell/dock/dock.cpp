@@ -94,6 +94,7 @@ static void handle_task_leave_output(void *data, struct zwf_window_v1 *zwf_windo
 static void handle_task_destroyed(void *data, struct zwf_window_v1 *zwf_window_v1)
 {
     std::cout << "task " << zwf_window_v1 << " destroyed" << std::endl;
+    zwf_window_v1_destroy(zwf_window_v1);
 }
 
 static const struct zwf_window_v1_listener zwf_window_implementation = {

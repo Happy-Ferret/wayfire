@@ -386,7 +386,6 @@ const struct zxdg_output_v1_listener zxdg_output_v1_impl =
     zxdg_output_description
 };
 
-
 /* wayfire_output implementation */
 wayfire_output::wayfire_output(wayfire_display *display, wl_output *output)
 {
