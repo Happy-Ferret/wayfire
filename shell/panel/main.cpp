@@ -29,10 +29,12 @@ int main(int argc, char *argv[])
     }
 
     auto config = new wayfire_config(config_file);
-    auto display = new wayfire_display([=] (wayfire_output *output)
+    auto display = new wayfire_display();
+    display->new_output_callback = [=] (wayfire_output *output)
     {
         new wayfire_panel(config, output);
-    });
+    };
+    display->init();
 
     while(true) {
         if (wl_display_dispatch(display->display) < 0)

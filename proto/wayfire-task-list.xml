@@ -1,0 +1,87 @@
+<protocol name="wayfire_task_list">
+    <interface name="zwf_task_manager_v1" version="1">
+        <description summary="List and control opened apps">
+            The purpose of this protocol is to enable the creation of taskbars
+            and docks by providing them with a list of opened applications and
+            letting them request certain actions on them, like maximizing, etc.
+
+            Each created window has a list of outputs it is visible on.
+        </description>
+
+        <event name="window_created">
+            <arg name="window" type="new_id" interface="zwf_window_v1"/>
+        </event>
+
+        <request name="destroy" type="destructor"/>
+    </interface>
+
+    <interface name="zwf_window_v1" version="1">
+        <description summary="An opened window">
+            A zwf_window_v1 object represents an opened window.
+            Each app may have multiple opened windows.
+        </description>
+
+        <event name="title">
+            <description summary="Title change">
+                This event is emitted whenever the title of the window changes
+                and immediately after the creation of the zwf_window_v1
+            </description>
+            <arg name="title" type="string"/>
+        </event>
+
+        <event name="app_id">
+            <description summary="App-id change">
+                This event is emitted whenever the app-id of the window changes
+                or after it is created (the initial title)
+            </description>
+            <arg name="app_id" type="string"/>
+        </event>
+
+        <event name="enter_output">
+            <description summary="Window entered an output">
+                This event is emitted whenever the window becomes visible on
+                the given output. A window may be visible on multiple outputs.
+
+                The output is identified by its name, which is identical to the
+                name in xdg-output
+            </description>
+            <arg name="output" type="string"/>
+        </event>
+
+        <event name="leave_output">
+            <description summary="Window left an output">
+                This event is emitted whenever the window stops being visible on
+                the given output. It is guaranteed that an entered-output event
+                with the same output has been emitted before this event.
+
+                The output is identified by its name, which is identical to the
+                name in xdg-output
+            </description>
+            <arg name="output" type="string"/>
+        </event>
+
+        <request name="focus">
+            <description summary="Request focus">
+                Request that the current window is focused. However, there is no guarantee
+                the window will be actually focused.
+            </description>
+        </request>
+
+        <request name="minimize">
+            <description summary="Request the window be minimized">
+                Request that the window is minimized. No guarantee the window will actually be
+                minimized.
+            </description>
+        </request>
+
+        <event name="destroyed">
+            <description summary="Window has been destroyed">
+                This event means the window has been destroyed. It is guaranteed there won't be
+                any more events for this zwf_window_v1. The client must not send any requests
+                after this either.
+            </description>
+        </event>
+
+        <request name="destroy" type="destructor"/>
+    </interface>
+</protocol>

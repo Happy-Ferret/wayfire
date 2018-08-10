@@ -186,11 +186,13 @@ int main(int argc, char *argv[])
 
     bg_path = section->get_option("background", "none")->as_string();
 
-    auto display = new wayfire_display([=] (wayfire_output *output)
+    auto display = new wayfire_display();
+    display->new_output_callback = [=] (wayfire_output *output)
     {
         new wayfire_background(output, bg_path);
-    });
+    };
 
+    display->init();
     while(true)
     {
         if (wl_display_dispatch(display->display) < 0)

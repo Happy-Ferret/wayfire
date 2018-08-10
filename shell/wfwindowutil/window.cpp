@@ -176,9 +176,24 @@ const wl_output_listener output_listener =
     handle_wl_output_done,
     handle_wl_output_scale
 };
+
+/* xdg-shell listener */
 void handle_zxdg_ping (void *, zxdg_shell_v6 *shell, uint32_t serial)
 { zxdg_shell_v6_pong(shell, serial); }
 const zxdg_shell_v6_listener zxdg_listener = { handle_zxdg_ping };
+
+/* zwf_task_list */
+void handle_zwf_window_created(void *data, zwf_task_manager_v1 *zwf_task_manager_v1,
+                               zwf_window_v1 *window)
+{
+    auto display = (wayfire_display*) data;
+    if (display->new_window_callback)
+        display->new_window_callback(window);
+}
+
+static const zwf_task_manager_v1_listener zwf_task_manager_listener = {
+    handle_zwf_window_created
+};
 
 // listeners
 void registry_add_object(void *data, struct wl_registry *registry, uint32_t name,
@@ -236,6 +251,14 @@ void registry_add_object(void *data, struct wl_registry *registry, uint32_t name
         // XXX: are we sure that the zwf_shell_manager will be created before the wl_output?
         display->name_to_wayfire_output[name] = new wayfire_output(display, output);
     }
+    else if (strcmp(interface, zwf_task_manager_v1_interface.name) == 0)
+    {
+        display->zwf_task_manager = (zwf_task_manager_v1*)
+            wl_registry_bind(registry, name, &zwf_task_manager_v1_interface,
+                             std::min(version, 1u));
+
+        zwf_task_manager_v1_add_listener(display->zwf_task_manager, &zwf_task_manager_listener, display);
+    }
 }
 
 void registry_remove_object(void *data, struct wl_registry *registry, uint32_t name)
@@ -255,9 +278,12 @@ static struct wl_registry_listener registry_listener =
 };
 
 /* wayfire_display implementation */
-wayfire_display::wayfire_display(std::function<void(wayfire_output*)> new_output_cb)
+wayfire_display::wayfire_display()
 {
-    this->new_output_callback = new_output_cb;
+}
+
+void wayfire_display::init()
+{
     display = wl_display_connect(NULL);
 
     if (!display)
@@ -342,9 +368,12 @@ static void zxdg_output_logical_size(void *data, struct zxdg_output_v1 *zxdg_out
 }
 
 static void zxdg_output_done(void *data, struct zxdg_output_v1 *zxdg_output_v1) { }
-static void zxdg_output_name(void *data, struct zxdg_output_v1 *zxdg_output_v1, const char *name) {}
+static void zxdg_output_name(void *data, struct zxdg_output_v1 *zxdg_output_v1, const char *name)
+{
+    auto wo = (wayfire_output*) data;
+    wo->xdg_name = name;
+}
 static void zxdg_output_description(void *data, struct zxdg_output_v1 *zxdg_output_v1, const char *description) {}
-
 
 const struct zxdg_output_v1_listener zxdg_output_v1_impl =
 {

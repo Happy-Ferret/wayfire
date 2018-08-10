@@ -5,6 +5,7 @@
 #include "xdg-shell-unstable-v6-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "wayfire-shell-client-protocol.h"
+#include "wayfire-task-list-client-protocol.h"
 #include <iostream>
 #include <functional>
 #include <vector>
@@ -24,10 +25,13 @@ struct wayfire_display
     wl_pointer    *pointer = nullptr;
 
     zxdg_shell_v6          *zxdg_shell = nullptr;
+    zwf_task_manager_v1    *zwf_task_manager = nullptr;
     zwf_shell_manager_v1   *zwf_shell_manager = nullptr;
     zxdg_output_manager_v1 *zxdg_output_manager = nullptr;
 
-    wayfire_display(std::function<void(wayfire_output*)> new_output_cb);
+    wayfire_display();
+    void init();
+
     ~wayfire_display();
 
     std::map<uint32_t, wayfire_output*> name_to_wayfire_output;
@@ -39,6 +43,7 @@ struct wayfire_display
     void show_default_cursor(uint32_t serial);
 
     std::function<void(wayfire_output*)> new_output_callback;
+    std::function<void(zwf_window_v1*)> new_window_callback;
 };
 
 struct wayfire_window;
@@ -47,6 +52,7 @@ struct wayfire_output
     wayfire_display *display;
 
     wl_output *handle = nullptr;
+    std::string xdg_name;
     zxdg_output_v1 *zxdg_output = nullptr;
     zwf_output_v1 *zwf = nullptr;
 
