@@ -186,6 +186,7 @@ const zxdg_shell_v6_listener zxdg_listener = { handle_zxdg_ping };
 void handle_zwf_window_created(void *data, zwf_task_manager_v1 *zwf_task_manager_v1,
                                zwf_window_v1 *window)
 {
+    std::cout << "window created" << std::endl;
     auto display = (wayfire_display*) data;
     if (display->new_window_callback)
         display->new_window_callback(window);
@@ -253,6 +254,7 @@ void registry_add_object(void *data, struct wl_registry *registry, uint32_t name
     }
     else if (strcmp(interface, zwf_task_manager_v1_interface.name) == 0)
     {
+        std::cout << "bind task manager" << std::endl;
         display->zwf_task_manager = (zwf_task_manager_v1*)
             wl_registry_bind(registry, name, &zwf_task_manager_v1_interface,
                              std::min(version, 1u));

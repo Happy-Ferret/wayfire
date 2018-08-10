@@ -85,6 +85,13 @@ zwf_custom_view_data *get_data_for_view(wayfire_view view)
     return data;
 }
 
+static void zwf_window_v1_send_data(wl_resource *resource, wayfire_view view)
+{
+    zwf_window_v1_send_title(resource, view->get_title().c_str());
+    zwf_window_v1_send_app_id(resource, view->get_app_id().c_str());
+    zwf_window_v1_send_enter_output(resource, view->get_output()->handle->name);
+}
+
 static void create_zwf_window_v1(wl_resource *client, wayfire_view view)
 {
     if (!view->custom_data.count(cdata_name))
@@ -98,6 +105,7 @@ static void create_zwf_window_v1(wl_resource *client, wayfire_view view)
                                    handle_zwf_task_manager_destroy);
 
     zwf_task_manager_v1_send_window_created(client, resource);
+    zwf_window_v1_send_data(resource, view);
 }
 
 class wayfire_window_list : public wayfire_plugin_t
@@ -125,9 +133,17 @@ class wayfire_window_list : public wayfire_plugin_t
         if (!view->custom_data.count(cdata_name))
             return;
 
+        log_info("destroy view window-list");
         auto data = get_data_for_view(view);
         wl_resource *resource;
+        std::vector<wl_resource*> to_destroy;
         wl_resource_for_each(resource, &data->list)
+        {
+            log_info("got resoruce");
+            to_destroy.push_back(resource);
+        }
+
+        for (auto resource : to_destroy)
         {
             zwf_window_v1_send_destroyed(resource);
             wl_resource_destroy(resource);
@@ -153,7 +169,7 @@ class wayfire_window_list : public wayfire_plugin_t
 
         /* TODO: react to attach/detach */
         output->connect_signal("map-view", &view_map);
-        output->connect_signal("unmap-view", &view_map);
+        output->connect_signal("unmap-view", &view_unmap);
     }
 
     void fini()

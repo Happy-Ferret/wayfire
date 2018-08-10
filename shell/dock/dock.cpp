@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     auto display = new wayfire_display();
     display->new_output_callback = [=] (wayfire_output *output)
     {
-        new wayfire_dock(output);
+//        new wayfire_dock(output);
     };
 
     display->new_window_callback = [=] (zwf_window_v1 *window)
@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
         new wayfire_task(window);
     };
 
+    display->init();
     while(true)
     {
         if (wl_display_dispatch(display->display) < 0)
