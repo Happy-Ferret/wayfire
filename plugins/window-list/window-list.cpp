@@ -6,12 +6,13 @@
 #include "plugin.hpp"
 #include "output.hpp"
 #include "signal-definitions.hpp"
+#include "workspace-manager.hpp"
 #include "debug.hpp"
 
 #include "wayfire-task-list-protocol.h"
 
-using zwf_client_list = wl_list*;
 using zwf_window_resource_list = wl_list*;
+using zwf_client_callback = std::function<void(wl_resource*)>*;
 
 void zwf_task_manager_v1_destroy(wl_client *client, wl_resource *resource)
 {
@@ -29,12 +30,12 @@ static void handle_zwf_task_manager_destroy(wl_resource *resource)
 
 void bind_zwf_task_manager(wl_client *client, void *data, uint32_t version, uint32_t id)
 {
-    auto list = (zwf_client_list*) data;
+    auto callback = (zwf_client_callback) data;
     auto resource = wl_resource_create(client, &zwf_task_manager_v1_interface, 1, id);
-    wl_list_insert(*list, wl_resource_get_link(resource));
-
     wl_resource_set_implementation(resource, &zwf_task_manager_implementation, NULL,
                                    handle_zwf_task_manager_destroy);
+
+    (*callback) (resource);
 }
 
 static const std::string cdata_name = "zwf-window-list";
@@ -89,11 +90,25 @@ zwf_custom_view_data *get_data_for_view(wayfire_view view)
     return data;
 }
 
-static void zwf_window_v1_send_data(wl_resource *resource, wayfire_view view)
+static void window_v1_send_title(wl_resource *resource, wayfire_view view)
 {
     zwf_window_v1_send_title(resource, view->get_title().c_str());
+}
+
+static void window_v1_send_app_id(wl_resource *resource, wayfire_view view)
+{
     zwf_window_v1_send_app_id(resource, view->get_app_id().c_str());
-    zwf_window_v1_send_enter_output(resource, view->get_output()->handle->name);
+}
+
+static void window_v1_send_output(wl_resource *resource, wayfire_view view, bool leave)
+{
+    if (leave)
+    {
+        zwf_window_v1_send_leave_output(resource, view->get_output()->handle->name);
+    } else
+    {
+        zwf_window_v1_send_enter_output(resource, view->get_output()->handle->name);
+    }
 }
 
 static void create_zwf_window_v1(wl_resource *client, wayfire_view view)
@@ -111,20 +126,26 @@ static void create_zwf_window_v1(wl_resource *client, wayfire_view view)
     log_info("create resource %p", resource);
 
     zwf_task_manager_v1_send_window_created(client, resource);
-    zwf_window_v1_send_data(resource, view);
+
+    window_v1_send_title(resource, view);
+    window_v1_send_app_id(resource, view);
+    window_v1_send_output(resource, view, false);
 }
+
+static wl_list client_list;
+static wl_global *global;
+static int loaded_count = 0;
 
 class wayfire_window_list : public wayfire_plugin_t
 {
-    wl_list client_list;
     void setup_global()
     {
         wl_list_init(&client_list);
-        if (wl_global_create(core->display, &zwf_task_manager_v1_interface,
-                             1, &client_list, bind_zwf_task_manager) == NULL)
-        {
+        global = wl_global_create(core->display, &zwf_task_manager_v1_interface,
+                                  1, &initialize_client, bind_zwf_task_manager);
+
+        if (!global)
             log_error("Failed to create wayfire_shell interface");
-        }
     }
 
     void create_view(wayfire_view view)
@@ -134,7 +155,18 @@ class wayfire_window_list : public wayfire_plugin_t
             create_zwf_window_v1(resource, view);
     }
 
-    void destroy_view(wayfire_view view)
+    std::function<void(wl_resource*)> initialize_client =
+    [=] (wl_resource *resource)
+    {
+        output->workspace->for_each_view([=] (wayfire_view view) {
+            if (view->is_mapped() && view->role == WF_VIEW_ROLE_TOPLEVEL)
+                create_zwf_window_v1(resource, view);
+        }, WF_ALL_LAYERS);
+
+        wl_list_insert(&client_list, wl_resource_get_link(resource));
+    };
+
+    void view_for_each_resource(wayfire_view view, std::function<void(wl_resource*)> action)
     {
         if (!view->custom_data.count(cdata_name))
             return;
@@ -143,48 +175,109 @@ class wayfire_window_list : public wayfire_plugin_t
         auto data = get_data_for_view(view);
 
         wl_resource *resource;
-        std::vector<wl_resource*> to_destroy;
+        std::vector<wl_resource*> accumulated;
         wl_resource_for_each(resource, &data->list)
-            to_destroy.push_back(resource);
+            accumulated.push_back(resource);
 
-        for (auto resource : to_destroy)
+        for (auto& resource : accumulated)
+            action(resource);
+    }
+
+    void destroy_view(wayfire_view view)
+    {
+        view_for_each_resource(view, [] (wl_resource *resource)
         {
             zwf_window_v1_send_destroyed(resource);
-
             // remove so that no further events are sent
             wl_list_remove(wl_resource_get_link(resource));
-
             // we removed the resource from the list, so we must make it inert
             wl_resource_set_user_data(resource, NULL);
 
             log_info("reset destroy resource %p has %p", resource, wl_resource_get_user_data(resource));
-        }
+        });
     }
 
-    signal_callback_t view_map, view_unmap;
+    void update_view_title(wayfire_view view)
+    {
+        view_for_each_resource(view, [&view] (wl_resource *resource)
+        {
+            window_v1_send_title(resource, view);
+        });
+    }
+
+    void update_view_app_id(wayfire_view view)
+    {
+        view_for_each_resource(view, [&view] (wl_resource *resource)
+        {
+            window_v1_send_app_id(resource, view);
+        });
+    }
+
+    void view_detached(wayfire_view view)
+    {
+        view_for_each_resource(view, [&view] (wl_resource *resource)
+        {
+            window_v1_send_output(resource, view, true);
+        });
+    }
+
+    void view_attached(wayfire_view view)
+    {
+        view_for_each_resource(view, [&view] (wl_resource *resource)
+        {
+            window_v1_send_output(resource, view, false);
+        });
+    }
+
+    signal_callback_t view_map, view_unmap, view_attach, view_detach, view_title, view_app_id;
     void init(wayfire_config *)
     {
         /* first output */
-        if (core->get_num_outputs() == 0)
+        if (loaded_count++ == 0)
             setup_global();
+
+        if (!global)
+            return;
 
         view_map = [=] (signal_data *data)
         {
-            create_view(get_signaled_view(data));
+            auto view = get_signaled_view(data);
+            if (view->role == WF_VIEW_ROLE_TOPLEVEL)
+                create_view(view);
         };
 
-        view_unmap = [=] (signal_data *data)
-        {
-            destroy_view(get_signaled_view(data));
-        };
+        view_unmap = [=] (signal_data *data) { destroy_view(get_signaled_view(data)); };
+        view_attach = [=] (signal_data *data) { view_attached(get_signaled_view(data)); };
+        view_detach = [=] (signal_data *data) { view_detached(get_signaled_view(data)); };
+        view_title  = [=] (signal_data *data) { update_view_title(get_signaled_view(data)); };
+        view_app_id = [=] (signal_data *data) { update_view_app_id(get_signaled_view(data)); };
 
-        /* TODO: react to attach/detach */
         output->connect_signal("map-view", &view_map);
         output->connect_signal("unmap-view", &view_unmap);
+        output->connect_signal("attach-view", &view_attach);
+        output->connect_signal("detach-view", &view_detach);
+        output->connect_signal("view-title-changed", &view_title);
+        output->connect_signal("view-app-id-changed", &view_app_id);
     }
 
     void fini()
     {
+        output->disconnect_signal("map-view", &view_map);
+        output->disconnect_signal("unmap-view", &view_unmap);
+        output->disconnect_signal("attach-view", &view_attach);
+        output->disconnect_signal("detach-view", &view_detach);
+        output->disconnect_signal("view-title-changed", &view_title);
+        output->disconnect_signal("view-app-id-changed", &view_app_id);
+
+        /* we are not the last output, the plugin is still loaded */
+        if (--loaded_count)
+            return;
+
+        output->workspace->for_each_view([=] (wayfire_view view){
+            destroy_view(view);
+        }, WF_ALL_LAYERS);
+
+        wl_global_destroy(global);
     }
 };
 
