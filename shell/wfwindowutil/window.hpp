@@ -5,7 +5,7 @@
 #include "xdg-shell-unstable-v6-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "wayfire-shell-client-protocol.h"
-#include "wayfire-task-list-client-protocol.h"
+#include "wayfire-window-list-client-protocol.h"
 #include <iostream>
 #include <functional>
 #include <vector>
@@ -25,8 +25,8 @@ struct wayfire_display
     wl_pointer    *pointer = nullptr;
 
     zxdg_shell_v6          *zxdg_shell = nullptr;
-    zwf_task_manager_v1    *zwf_task_manager = nullptr;
     zwf_shell_manager_v1   *zwf_shell_manager = nullptr;
+    zwf_window_manager_v1  *zwf_window_manager = nullptr;
     zxdg_output_manager_v1 *zxdg_output_manager = nullptr;
 
     wayfire_display();

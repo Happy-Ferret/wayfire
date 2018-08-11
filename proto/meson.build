@@ -27,7 +27,7 @@ server_protocols = [
 	[wl_protocol_dir, 'unstable/xdg-shell/xdg-shell-unstable-v6.xml'],
     [wl_protocol_dir, 'unstable/xdg-output/xdg-output-unstable-v1.xml'],
     'wayfire-shell.xml',
-    'wayfire-task-list.xml',
+    'wayfire-window-list.xml',
     'wlr-layer-shell-unstable-v1.xml'
 ]
 
@@ -35,7 +35,7 @@ client_protocols = [
 	[wl_protocol_dir, 'unstable/xdg-shell/xdg-shell-unstable-v6.xml'],
     [wl_protocol_dir, 'unstable/xdg-output/xdg-output-unstable-v1.xml'],
     'wayfire-shell.xml',
-    'wayfire-task-list.xml'
+    'wayfire-window-list.xml'
 ]
 
 wl_protos_src = []

@@ -1,5 +1,5 @@
-<protocol name="wayfire_task_list">
-    <interface name="zwf_task_manager_v1" version="1">
+<protocol name="wayfire_window_list">
+    <interface name="zwf_window_manager_v1" version="1">
         <description summary="List and control opened apps">
             The purpose of this protocol is to enable the creation of taskbars
             and docks by providing them with a list of opened applications and

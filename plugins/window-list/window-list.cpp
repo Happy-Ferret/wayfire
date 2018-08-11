@@ -9,31 +9,31 @@
 #include "workspace-manager.hpp"
 #include "debug.hpp"
 
-#include "wayfire-task-list-protocol.h"
+#include "wayfire-window-list-protocol.h"
 
 using zwf_window_resource_list = wl_list*;
 using zwf_client_callback = std::function<void(wl_resource*)>*;
 
-void zwf_task_manager_v1_destroy(wl_client *client, wl_resource *resource)
+void zwf_window_manager_v1_destroy(wl_client *client, wl_resource *resource)
 {
     wl_resource_destroy(resource);
 }
 
-static const struct zwf_task_manager_v1_interface zwf_task_manager_implementation = {
-    zwf_task_manager_v1_destroy
+static const struct zwf_window_manager_v1_interface zwf_window_manager_implementation = {
+    zwf_window_manager_v1_destroy
 };
 
-static void handle_zwf_task_manager_destroy(wl_resource *resource)
+static void handle_zwf_window_manager_destroy(wl_resource *resource)
 {
     wl_list_remove(wl_resource_get_link(resource));
 }
 
-void bind_zwf_task_manager(wl_client *client, void *data, uint32_t version, uint32_t id)
+void bind_zwf_window_manager(wl_client *client, void *data, uint32_t version, uint32_t id)
 {
     auto callback = (zwf_client_callback) data;
-    auto resource = wl_resource_create(client, &zwf_task_manager_v1_interface, 1, id);
-    wl_resource_set_implementation(resource, &zwf_task_manager_implementation, NULL,
-                                   handle_zwf_task_manager_destroy);
+    auto resource = wl_resource_create(client, &zwf_window_manager_v1_interface, 1, id);
+    wl_resource_set_implementation(resource, &zwf_window_manager_implementation, NULL,
+                                   handle_zwf_window_manager_destroy);
 
     (*callback) (resource);
 }
@@ -125,7 +125,7 @@ static void create_zwf_window_v1(wl_resource *client, wayfire_view view)
 
     log_info("create resource %p", resource);
 
-    zwf_task_manager_v1_send_window_created(client, resource);
+    zwf_window_manager_v1_send_window_created(client, resource);
 
     window_v1_send_title(resource, view);
     window_v1_send_app_id(resource, view);
@@ -141,8 +141,8 @@ class wayfire_window_list : public wayfire_plugin_t
     void setup_global()
     {
         wl_list_init(&client_list);
-        global = wl_global_create(core->display, &zwf_task_manager_v1_interface,
-                                  1, &initialize_client, bind_zwf_task_manager);
+        global = wl_global_create(core->display, &zwf_window_manager_v1_interface,
+                                  1, &initialize_client, bind_zwf_window_manager);
 
         if (!global)
             log_error("Failed to create wayfire_shell interface");

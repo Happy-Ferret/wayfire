@@ -183,7 +183,7 @@ void handle_zxdg_ping (void *, zxdg_shell_v6 *shell, uint32_t serial)
 const zxdg_shell_v6_listener zxdg_listener = { handle_zxdg_ping };
 
 /* zwf_task_list */
-void handle_zwf_window_created(void *data, zwf_task_manager_v1 *zwf_task_manager_v1,
+void handle_zwf_window_created(void *data, zwf_window_manager_v1 *zwf_task_manager_v1,
                                zwf_window_v1 *window)
 {
     std::cout << "window created" << std::endl;
@@ -192,7 +192,7 @@ void handle_zwf_window_created(void *data, zwf_task_manager_v1 *zwf_task_manager
         display->new_window_callback(window);
 }
 
-static const zwf_task_manager_v1_listener zwf_task_manager_listener = {
+static const zwf_window_manager_v1_listener zwf_task_manager_listener = {
     handle_zwf_window_created
 };
 
@@ -252,14 +252,14 @@ void registry_add_object(void *data, struct wl_registry *registry, uint32_t name
         // XXX: are we sure that the zwf_shell_manager will be created before the wl_output?
         display->name_to_wayfire_output[name] = new wayfire_output(display, output);
     }
-    else if (strcmp(interface, zwf_task_manager_v1_interface.name) == 0)
+    else if (strcmp(interface, zwf_window_manager_v1_interface.name) == 0)
     {
         std::cout << "bind task manager" << std::endl;
-        display->zwf_task_manager = (zwf_task_manager_v1*)
-            wl_registry_bind(registry, name, &zwf_task_manager_v1_interface,
+        display->zwf_window_manager = (zwf_window_manager_v1*)
+            wl_registry_bind(registry, name, &zwf_window_manager_v1_interface,
                              std::min(version, 1u));
 
-        zwf_task_manager_v1_add_listener(display->zwf_task_manager, &zwf_task_manager_listener, display);
+        zwf_window_manager_v1_add_listener(display->zwf_window_manager, &zwf_task_manager_listener, display);
     }
 }
 
