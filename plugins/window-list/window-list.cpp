@@ -45,7 +45,7 @@ static void zwf_window_v1_focus(struct wl_client *client, struct wl_resource *re
     view->get_output()->focus_view(view->self());
 }
 
-static void zwf_window_v1_minimize(wl_client *client, wl_resource *resource)
+static void zwf_window_v1_toggle_minimized(wl_client *client, wl_resource *resource)
 {
     /* TODO */
 }
@@ -57,7 +57,7 @@ static void zwf_window_v1_destroy(wl_client *client, wl_resource *resource)
 
 static const struct zwf_window_v1_interface zwf_window_implementation = {
     zwf_window_v1_focus,
-    zwf_window_v1_minimize,
+    zwf_window_v1_toggle_minimized,
     zwf_window_v1_destroy
 };
 

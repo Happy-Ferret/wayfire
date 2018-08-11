@@ -67,10 +67,10 @@
             </description>
         </request>
 
-        <request name="minimize">
-            <description summary="Request the window be minimized">
-                Request that the window is minimized. No guarantee the window will actually be
-                minimized.
+        <request name="toggle_minimized">
+            <description summary="Request the window minimized state be toggled">
+                Requests the window be minimized if it isn't and vice versa.
+                No guarantee the window will actually be (un)minimized.
             </description>
         </request>
 
