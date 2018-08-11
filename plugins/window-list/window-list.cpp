@@ -106,14 +106,20 @@ static void window_v1_send_app_id(wl_resource *resource, wayfire_view view)
     zwf_window_v1_send_app_id(resource, view->get_app_id().c_str());
 }
 
-static void window_v1_send_output(wl_resource *resource, wayfire_view view, bool leave)
+static void window_v1_send_output(wl_resource *window_resource, wayfire_view view, bool leave)
 {
-    if (leave)
-    {
-        zwf_window_v1_send_leave_output(resource, view->get_output()->handle->name);
-    } else
-    {
-        zwf_window_v1_send_enter_output(resource, view->get_output()->handle->name);
+    wl_resource *output_resource;
+    auto handle = view->get_output()->handle;
+    auto client = wl_resource_get_client(window_resource);
+
+    wl_resource_for_each(output_resource, &handle->resources) {
+        if (wl_resource_get_client(output_resource) == client) {
+            if (leave) {
+                zwf_window_v1_send_leave_output(window_resource, output_resource);
+            } else {
+                zwf_window_v1_send_enter_output(window_resource, output_resource);
+            }
+        }
     }
 }
 

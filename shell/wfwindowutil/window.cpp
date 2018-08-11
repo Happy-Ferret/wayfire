@@ -391,6 +391,7 @@ wayfire_output::wayfire_output(wayfire_display *display, wl_output *output)
 {
     this->display = display;
     this->handle = output;
+    wl_output_set_user_data(output, this);
 
     zxdg_output = zxdg_output_manager_v1_get_xdg_output(display->zxdg_output_manager, handle);
     zxdg_output_v1_add_listener(zxdg_output, &zxdg_output_v1_impl, this);

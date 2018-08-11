@@ -78,16 +78,17 @@ static void handle_window_app_id(void *data, struct zwf_window_v1 *zwf_window_v1
 }
 
 static void handle_window_enter_output(void *data, struct zwf_window_v1 *zwf_window_v1,
-                                     const char *output)
+                                       wl_output *output)
 {
-    std::cout << "window " << zwf_window_v1 << " enter output: " << output << std::endl;
-    std::cout << "enter output " << output << std::endl;
+    auto wo = (wayfire_output*) wl_output_get_user_data(output);
+    std::cout << "window " << zwf_window_v1 << " enter output: " << wo->xdg_name << std::endl;
 }
 
 static void handle_window_leave_output(void *data, struct zwf_window_v1 *zwf_window_v1,
-                                     const char *output)
+                                       wl_output *output)
 {
-    std::cout << "window " << zwf_window_v1 << " leave output: " << output << std::endl;
+    auto wo = (wayfire_output*) wl_output_get_user_data(output);
+    std::cout << "window " << zwf_window_v1 << " leave output: " << wo->xdg_name << std::endl;
 
 }
 

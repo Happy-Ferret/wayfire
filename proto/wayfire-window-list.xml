@@ -41,11 +41,8 @@
             <description summary="Window entered an output">
                 This event is emitted whenever the window becomes visible on
                 the given output. A window may be visible on multiple outputs.
-
-                The output is identified by its name, which is identical to the
-                name in xdg-output
             </description>
-            <arg name="output" type="string"/>
+            <arg name="output" type="object" interface="wl_output"/>
         </event>
 
         <event name="leave_output">
@@ -53,11 +50,8 @@
                 This event is emitted whenever the window stops being visible on
                 the given output. It is guaranteed that an entered-output event
                 with the same output has been emitted before this event.
-
-                The output is identified by its name, which is identical to the
-                name in xdg-output
             </description>
-            <arg name="output" type="string"/>
+            <arg name="output" type="object" interface="wl_output"/>
         </event>
 
         <event name="virtual_desktop">
