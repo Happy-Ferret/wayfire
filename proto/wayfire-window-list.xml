@@ -60,17 +60,44 @@
             <arg name="output" type="string"/>
         </event>
 
+        <event name="virtual_desktop">
+            <description summary="Window was moved to a virtual desktop">
+                This event is emitted with the initial virtual desktop the window
+                is on and whenever it is moved to a different virtual desktop later.
+            </description>
+            <arg name="desktop" type="string"/>
+        </event>
+
+        <event name="maximized">
+            <description summary="Window's maximized state changed"/>
+            <arg name="state" type="uint"/>
+        </event>
+
+        <request name="set_maximized">
+            <description summary="Requests a change in the window maximized state">
+                Requests that the window maximized state be changed.
+                No guarantee the window will actually be (un)maximized.
+            </description>
+            <arg name="maximized" type="uint"/>
+        </request>
+
+        <event name="minimized">
+            <description summary="Window's minimized state changed"/>
+            <arg name="state" type="uint"/>
+        </event>
+
+        <request name="set_minimized">
+            <description summary="Requests a change in the window minimized state">
+                Requests that the window minimized state be changed.
+                No guarantee the window will actually be (un)minimized.
+            </description>
+            <arg name="minimized" type="uint"/>
+        </request>
+
         <request name="focus">
             <description summary="Request focus">
                 Request that the current window is focused. However, there is no guarantee
                 the window will be actually focused.
-            </description>
-        </request>
-
-        <request name="toggle_minimized">
-            <description summary="Request the window minimized state be toggled">
-                Requests the window be minimized if it isn't and vice versa.
-                No guarantee the window will actually be (un)minimized.
             </description>
         </request>
 

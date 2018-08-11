@@ -65,50 +65,71 @@ class wayfire_dock
     }
 };
 
-static void handle_task_title(void *data, struct zwf_window_v1 *zwf_window_v1,
+static void handle_window_title(void *data, struct zwf_window_v1 *zwf_window_v1,
                               const char *title)
 {
-    std::cout << "task " << zwf_window_v1 << " title " << title << std::endl;
+    std::cout << "window " << zwf_window_v1 << " title " << title << std::endl;
 }
 
-static void handle_task_app_id(void *data, struct zwf_window_v1 *zwf_window_v1,
+static void handle_window_app_id(void *data, struct zwf_window_v1 *zwf_window_v1,
                                const char *app_id)
 {
-    std::cout << "task " << zwf_window_v1 << " app id: " << app_id << std::endl;
+    std::cout << "window " << zwf_window_v1 << " app id: " << app_id << std::endl;
 }
 
-static void handle_task_enter_output(void *data, struct zwf_window_v1 *zwf_window_v1,
+static void handle_window_enter_output(void *data, struct zwf_window_v1 *zwf_window_v1,
                                      const char *output)
 {
-    std::cout << "task " << zwf_window_v1 << " enter output: " << output << std::endl;
+    std::cout << "window " << zwf_window_v1 << " enter output: " << output << std::endl;
     std::cout << "enter output " << output << std::endl;
 }
 
-static void handle_task_leave_output(void *data, struct zwf_window_v1 *zwf_window_v1,
+static void handle_window_leave_output(void *data, struct zwf_window_v1 *zwf_window_v1,
                                      const char *output)
 {
-    std::cout << "task " << zwf_window_v1 << " leave output: " << output << std::endl;
+    std::cout << "window " << zwf_window_v1 << " leave output: " << output << std::endl;
 
 }
 
-static void handle_task_destroyed(void *data, struct zwf_window_v1 *zwf_window_v1)
+static void handle_window_virtual_desktop(void *data, struct zwf_window_v1 *zwf_window_v1,
+                                        const char *desktop)
 {
-    std::cout << "task " << zwf_window_v1 << " destroyed" << std::endl;
+    std::cout << "window " << zwf_window_v1 << " virtual desktop: " << desktop << std::endl;
+}
+
+static void handle_window_virtual_maximized(void *data, struct zwf_window_v1 *zwf_window_v1,
+                                          uint32_t state)
+{
+    std::cout << "window " << zwf_window_v1 << " maximized: " << state << std::endl;
+}
+
+static void handle_window_virtual_minimized(void *data, struct zwf_window_v1 *zwf_window_v1,
+                                          uint32_t state)
+{
+    std::cout << "window " << zwf_window_v1 << " minimized: " << state << std::endl;
+}
+
+static void handle_window_destroyed(void *data, struct zwf_window_v1 *zwf_window_v1)
+{
+    std::cout << "window " << zwf_window_v1 << " destroyed" << std::endl;
     zwf_window_v1_destroy(zwf_window_v1);
 }
 
 static const struct zwf_window_v1_listener zwf_window_implementation = {
-    handle_task_title,
-    handle_task_app_id,
-    handle_task_enter_output,
-    handle_task_leave_output,
-    handle_task_destroyed
+    handle_window_title,
+    handle_window_app_id,
+    handle_window_enter_output,
+    handle_window_leave_output,
+    handle_window_virtual_desktop,
+    handle_window_virtual_maximized,
+    handle_window_virtual_minimized,
+    handle_window_destroyed
 };
 
-class wayfire_task
+class wayfire_client_window
 {
     public:
-        wayfire_task(zwf_window_v1 *window)
+        wayfire_client_window(zwf_window_v1 *window)
         {
             zwf_window_v1_add_listener(window, &zwf_window_implementation, NULL);
         }
@@ -150,7 +171,7 @@ int main(int argc, char *argv[])
 
     display->new_window_callback = [=] (zwf_window_v1 *window)
     {
-        new wayfire_task(window);
+        new wayfire_client_window(window);
     };
 
     display->init();
